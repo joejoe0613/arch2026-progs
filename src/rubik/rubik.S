@@ -148,22 +148,49 @@ rubik_solve_asm:
     # Part 3: Parse state into P/O ranks
     # ----------------------------------------
 
+    # Parse cube state
     mv a0, s0
-
     call minirubik_asm_parse_po
+
+    # Save permutation/orientation ranks
+    sw a0, 12(sp)
+    sw a1, 16(sp)
 
     # Returned:
     # a0 = permutation rank
     # a1 = orientation rank
 
+
     # ----------------------------------------
-    # Part 4: Execute handwritten IDA*
+    # Part 4: Depth-11 Lookup + IDA* Fallback
     # ----------------------------------------
+
+    # Try Depth-11 Lookup first
+    # a0 = permutation rank
+    # a1 = orientation rank
+    # a2 = path buffer
 
     mv a2, s4
+    call rubik_depth11_lookup
 
+    # Hit: a0 = 11
+    # Miss: a0 = -1
+
+    bge a0, zero, .Lrubik_have_length
+
+    # ----------------------------------------
+    # Lookup miss: restore P/O ranks
+    # ----------------------------------------
+
+    lw a0, 12(sp)
+    lw a1, 16(sp)
+
+    mv a2, s4
     call minirubik_asm_solve_po
 
+.Lrubik_have_length:
+
+    # Both paths return here
     # a0 = solution length
     # s4 = move path
 
@@ -173,6 +200,7 @@ rubik_solve_asm:
     bltu t0, a0, .Lrubik_invalid
 
     mv s3, a0
+
 
     # ----------------------------------------
     # Part 5: Calculate required output size
