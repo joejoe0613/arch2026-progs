@@ -458,3 +458,4 @@ bf16_sqrt_asm:
     ret
 
     .size bf16_sqrt_asm, .-bf16_sqrt_asm
+
