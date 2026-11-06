@@ -11,9 +11,10 @@
 
     .text
 
-    .globl  op1_asm
-    .type   op1_asm, @function
-    .align  2
+    .globl op1_asm
+    .type  op1_asm, @function
+    .align 2
+
 op1_asm:
     # Input:
     #   a0 = unsigned integer a
@@ -24,34 +25,32 @@ op1_asm:
     #   a0 = (a + b) modulo 2^32
     #   *n = number of carry propagation passes
 
-    # Step 1: Initialize pass counter
+    # Initialize pass counter
     li t0, 0
 
     # If b is zero, skip the loop
     beqz a1, .Lop1_done
 
 .Lop1_loop:
-    # Step 2: Calculate carry
+    # Calculate carry before modifying a0
     and t1, a0, a1
-    slli t1, t1, 1
 
-    # Step 3: Calculate sum without carry
+    # Calculate sum without carry
     xor a0, a0, a1
 
-    # Step 4: Propagate carry
-    mv a1, t1
+    # Shift carry directly into a1
+    slli a1, t1, 1
 
-    # Step 5: Increment loop counter
+    # Increment pass counter
     addi t0, t0, 1
 
-    # Repeat until carry becomes zero
+    # Repeat while carry is nonzero
     bnez a1, .Lop1_loop
 
 .Lop1_done:
-    # Store the number of passes
+    # Store pass count
     sw t0, 0(a2)
 
-    # Return the sum in a0
     ret
 
     .size op1_asm, .-op1_asm
