@@ -92,19 +92,22 @@ int32_t q_mul(int32_t a, int32_t b)
 
     /* Step 5: Restore the signed 64-bit product. */
     if (negative) {
-        product_lo = ~product_lo + 1u;
+        /* Detect whether the original low word is nonzero. */
+        uint32_t borrow = (product_lo | (0u - product_lo)) >> 31;
 
-        /* Carry from the low word during negation. */
-        product_hi = ~product_hi + (product_lo == 0);
+        /* Negate the complete 64-bit product. */
+        product_hi = 0u - product_hi - borrow;
+        product_lo = 0u - product_lo;
     }
 
     /* Step 6: Add rounding bias 2^19. */
-    uint32_t old_lo = product_lo;
+    uint32_t bias = 1u << (Q - 1);
 
-    product_lo += 1u << (Q - 1);
+    /* Detect carry from the upper 13 bits. */
+    uint32_t round_carry = ((product_lo >> (Q - 1)) + 1u) >> (33 - Q);
 
-    if (product_lo < old_lo)
-        ++product_hi;
+    product_lo += bias;
+    product_hi += round_carry;
 
     /* Step 7: Shift right by 20 and retain low 32 bits. */
     uint32_t result = (product_hi << (32 - Q)) | (product_lo >> Q);
